@@ -27,18 +27,37 @@ namespace ETHConsole
             else
             {
                 url = args[0];
-                account = args[1];
-                password = args[2];
+                //account = args[1];
+                //password = args[2];
             }
 
             web3 = new Nethereum.Web3.Web3(url);
 
-            Console.WriteLine("Contract name?");
-            String contractName = Console.ReadLine();
+            if (args.Length > 1)
+            {
+                String command = args[1];
 
-            String contractHash = DeplyContract("/home/lucascullen/Projects/Accenture/quorum/src/bin/dot net core/mvc/contracts/", contractName, "0x210f1e4C56D68F63Ab4bf41157bbca253abfeC45", "Test12345");
-            //String contractHash = DeplyContract("/home/lucascullen/Projects/Accenture/quorum/src/dot net core/bin/mvc/contracts/", "Netting", "0x210f1e4C56D68F63Ab4bf41157bbca253abfeC45", "Test12345");
-            Console.WriteLine(contractHash);
+                switch (command.ToLower())
+                {
+                    case "account":
+                        ListAccounts();
+                        break;
+                    case "deploy":
+                        account = args[3];
+                        password = args[4];
+
+                        //"0x210f1e4C56D68F63Ab4bf41157bbca253abfeC45", "Test12345"
+                        String contractHash = DeplyContract("/home/lucascullen/Projects/Accenture/quorum/src/dot net core/bin/mvc/contracts/", args[2], account, password);
+                        //String contractHash = DeplyContract("/home/lucascullen/Projects/Accenture/quorum/src/dot net core/bin/mvc/contracts/", "Netting", "0x210f1e4C56D68F63Ab4bf41157bbca253abfeC45", "Test12345");
+                        Console.WriteLine(contractHash);
+                        MonitorTx(contractHash);
+                        break;
+                }
+            }
+
+            //Console.WriteLine("Contract name?");
+            //String contractName = Console.ReadLine();
+
         }
 
         private static void AccountMenu()
@@ -66,12 +85,29 @@ namespace ETHConsole
             {
                 String bytes = GetBytesFromFile(contractPath + contractName + ".bin");
                 Nethereum.Hex.HexTypes.HexBigInteger gas = new Nethereum.Hex.HexTypes.HexBigInteger(2000000);
+                
+                String abi = GetABIFromFile(String.Format("{0}{1}.abi", contractPath, contractName));
+                //var x = web3.Eth.DeployContract.EstimateGasAsync<Nethereum.Hex.HexTypes.HexBigInteger>(abi, bytes, account, null).Result;
                 return web3.Eth.DeployContract.SendRequestAsync(bytes, account, gas).Result;
             }
             else
             {
                 return "unlock failed";
             }
+        }
+
+        private static void MonitorTx(String transactionHash)
+        {
+            var receipt = web3.Eth.Transactions.GetTransactionReceipt.SendRequestAsync(transactionHash).Result;
+
+            while (receipt == null)
+            {
+                Console.WriteLine("Sleeping for 5 seconds");
+                System.Threading.Thread.Sleep(5000);
+                receipt = web3.Eth.Transactions.GetTransactionReceipt.SendRequestAsync(transactionHash).Result;
+            }
+
+            Console.WriteLine("Contract address {0} block height {1}", receipt.ContractAddress, receipt.BlockNumber.Value);
         }
 
         private static async Task ListAccountsAsync()
