@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using System.Collections.Specialized;
 
 namespace ETHConsole
 {
@@ -8,15 +9,13 @@ namespace ETHConsole
         private static Nethereum.Web3.Web3 web3;
         
         //private const String DEFAULT_URL = "http://localhost:8545";
-        private const String DEFAULT_URL = "http://quorumnx03.southeastasia.cloudapp.azure.com:8545";
+        //private const String DEFAULT_URL = "http://quorumnx03.southeastasia.cloudapp.azure.com:8545";
+        private const String DEFAULT_URL = "http://192.168.0.103:8545";
 
         static void Main(string[] args)
         {
             String url = DEFAULT_URL;
-            String account = "";
-            String password = "";
             String command = "";
-            String contractName = "";
 
             if (args.Length == 0)
             {
@@ -32,27 +31,11 @@ namespace ETHConsole
 
                 Console.Write("Command ");
                 String[] input = Console.ReadLine().Split(' ');
-                
-                command = input[0];
-                contractName = input[1];
-                account = input[2];
-                password = input[3];
             }
             else
             {
                 url = args[0];
                 command = args[1];
-
-                switch (command.ToLower())
-                {
-                    case "account":
-                        break;
-                    case "deploy":
-                        contractName = args[2];
-                        account = args[3];
-                        password = args[4];
-                        break;
-                }
             }
 
             web3 = new Nethereum.Web3.Web3(url);
@@ -63,7 +46,7 @@ namespace ETHConsole
                     ListAccounts();
                     break;
                 case "deploy":
-                    String contractHash = DeplyContract("/Users/lucascullen/Projects/Accenture/quorum/src/dot net core/bin/mvc/contracts/", contractName, account, password);
+                    String contractHash = DeplyContract("/Users/lucascullen/Projects/Accenture/quorum/src/dot net core/bin/mvc/contracts/", args[2], args[3], args[4]);
                     //String contractHash = DeplyContract("/home/lucascullen/Projects/Accenture/quorum/src/dot net core/bin/mvc/contracts/", "Netting", "0x210f1e4C56D68F63Ab4bf41157bbca253abfeC45", "Test12345");
                     Console.WriteLine(contractHash);
                     MonitorTx(contractHash);
@@ -97,12 +80,12 @@ namespace ETHConsole
 
         private static String DeplyContract(String contractPath, String contractName, String account, String password)
         {
-            Boolean unlocked = web3.Personal.UnlockAccount.SendRequestAsync(account, password, 120).Result;
+            Boolean unlocked = web3.Personal.UnlockAccount.SendRequestAsync(account, password, 60).Result;
 
             if (unlocked)
             {
                 String bytes = GetBytesFromFile(contractPath + contractName + ".bin");
-                Nethereum.Hex.HexTypes.HexBigInteger gas = new Nethereum.Hex.HexTypes.HexBigInteger(2000000);
+                Nethereum.Hex.HexTypes.HexBigInteger gas = new Nethereum.Hex.HexTypes.HexBigInteger(4000000);
                 
                 String abi = GetABIFromFile(String.Format("{0}{1}.abi", contractPath, contractName));
                 //var x = web3.Eth.DeployContract.EstimateGasAsync<Nethereum.Hex.HexTypes.HexBigInteger>(abi, bytes, account, null).Result;
