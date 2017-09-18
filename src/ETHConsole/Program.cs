@@ -8,9 +8,8 @@ namespace ETHConsole
     {
         private static Nethereum.Web3.Web3 web3;
         
-        //private const String DEFAULT_URL = "http://localhost:8545";
-        //private const String DEFAULT_URL = "http://quorumnx03.southeastasia.cloudapp.azure.com:8545";
-        private const String DEFAULT_URL = "http://192.168.0.103:8545";
+        private const String DEFAULT_URL = "http://localhost:8545";
+        //private const String DEFAULT_URL = "http://192.168.0.103:8545";
 
         static void Main(string[] args)
         {
@@ -31,6 +30,7 @@ namespace ETHConsole
 
                 Console.Write("Command ");
                 String[] input = Console.ReadLine().Split(' ');
+                command = input[0].ToLower();
             }
             else
             {
@@ -46,10 +46,14 @@ namespace ETHConsole
                     ListAccounts();
                     break;
                 case "deploy":
-                    String contractHash = DeplyContract("/Users/lucascullen/Projects/Accenture/quorum/src/dot net core/bin/mvc/contracts/", args[2], args[3], args[4]);
+                    String contractHash = DeplyContract("", args[2], args[3], args[4]);
                     //String contractHash = DeplyContract("/home/lucascullen/Projects/Accenture/quorum/src/dot net core/bin/mvc/contracts/", "Netting", "0x210f1e4C56D68F63Ab4bf41157bbca253abfeC45", "Test12345");
                     Console.WriteLine(contractHash);
                     MonitorTx(contractHash);
+                    break;
+                case "deployandtest":
+                    ContractSettings settings = new ContractSettings(args);
+                    DeplyContract(settings);
                     break;
                 default:
                     throw new ArgumentException();
@@ -60,6 +64,7 @@ namespace ETHConsole
             //String contractName = Console.ReadLine();
 
         }
+        
 
         private static void AccountMenu()
         {
@@ -75,6 +80,30 @@ namespace ETHConsole
             {
                 var balance = web3.Eth.GetBalance.SendRequestAsync(accounts[i]).Result;
                 Console.WriteLine(accounts[i] + " " + balance.HexValue);
+            }
+        }
+        
+        private static String DeplyContract(ContractSettings settings)
+        {
+            Boolean unlocked = true;
+            if (!settings.TestRPC)
+            {
+                unlocked = web3.Personal.UnlockAccount.SendRequestAsync(settings.Account, settings.Password, 60).Result;
+            }
+
+            if (unlocked)
+            {
+                String bytes = GetBytesFromFile(settings.ABIPath + ".bin");
+                Nethereum.Hex.HexTypes.HexBigInteger gas = new Nethereum.Hex.HexTypes.HexBigInteger(4000000);
+                
+                String abi = GetABIFromFile(String.Format("{0}.abi", settings.ABIPath));
+                //var x = web3.Eth.DeployContract.EstimateGasAsync<Nethereum.Hex.HexTypes.HexBigInteger>(abi, bytes, account, null).Result;
+                
+                return web3.Eth.DeployContract.SendRequestAsync(bytes, settings.Account, gas).Result;
+            }
+            else
+            {
+                return "unlock failed";
             }
         }
 
@@ -96,6 +125,7 @@ namespace ETHConsole
                 return "unlock failed";
             }
         }
+        
 
         private static void MonitorTx(String transactionHash)
         {
